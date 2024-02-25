@@ -1,0 +1,6 @@
+[workspace]
+members = ["ext/safetensors"]
+resolver = "2"
+
+[profile.release]
+strip = true
