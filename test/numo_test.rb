@@ -18,7 +18,7 @@ class NumoTest < Minitest::Test
     end
   end
 
-  def test_zero_rank
+  def test_load_file_zero_rank
     tensors = {"weight1" => Numo::DFloat.cast(1)}
 
     Dir.mktmpdir do |dir|
@@ -28,7 +28,7 @@ class NumoTest < Minitest::Test
     end
   end
 
-  def test_empty
+  def test_load_file_empty
     tensors = {"weight1" => Numo::DFloat.new([0]).rand}
 
     Dir.mktmpdir do |dir|
@@ -38,25 +38,32 @@ class NumoTest < Minitest::Test
     end
   end
 
-  def test_symbol_keys
+  def test_save_symbol_keys
     tensors = {weight1: Numo::DFloat.new([3]).rand}
 
     data = Safetensors::Numo.save(tensors)
     assert_tensors tensors, Safetensors::Numo.load(data)
   end
 
-  def test_invalid_object
+  def test_save_invalid_object
     error = assert_raises(ArgumentError) do
       Safetensors::Numo.save(1)
     end
     assert_equal "Expected a hash of [String, Numo::NArray] but received Integer", error.message
   end
 
-  def test_invalid_value
+  def test_save_invalid_value
     error = assert_raises(ArgumentError) do
       Safetensors::Numo.save({"weight1" => 1})
     end
     assert_equal "Key `weight1` is invalid, expected Numo::NArray but received Integer", error.message
+  end
+
+  def test_load_invalid_value
+    error = assert_raises(Safetensors::Error) do
+      Safetensors::Numo.load("")
+    end
+    assert_includes error.message, "Error while deserializing"
   end
 
   private
