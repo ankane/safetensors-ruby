@@ -1,4 +1,4 @@
-## 0.1.1 (unreleased)
+## 0.1.1 (2024-08-18)
 
 - Updated Safetensors to 0.4.4
 - Added precompiled gem for Linux ARM MUSL
