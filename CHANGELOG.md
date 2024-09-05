@@ -1,5 +1,6 @@
 ## 0.1.2 (unreleased)
 
+- Updated Safetensors to 0.4.5
 - Added precompiled gem for Windows
 
 ## 0.1.1 (2024-08-18)
