@@ -52,7 +52,7 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
                     // so the string will not be modified (or garbage collected)
                     // while the reference is held. Also, the string is a private copy.
                     let slice = unsafe { rs.as_slice() };
-                    data = Some((slice.as_ptr(), slice.len()))
+                    data = Some((slice.as_ptr(), slice.len()));
                 }
                 _ => println!("Ignored unknown kwarg option {key}"),
             };
