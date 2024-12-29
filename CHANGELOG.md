@@ -1,3 +1,7 @@
+## 0.1.3 (unreleased)
+
+- Added support for Ruby 3.4
+
 ## 0.1.2 (2024-09-08)
 
 - Updated Safetensors to 0.4.5
