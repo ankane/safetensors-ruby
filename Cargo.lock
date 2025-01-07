@@ -267,15 +267,15 @@ version = "0.1.3"
 dependencies = [
  "magnus",
  "memmap2",
- "safetensors 0.5.0",
+ "safetensors 0.5.1",
  "serde_json",
 ]
 
 [[package]]
 name = "safetensors"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f42137a36b409fd651fd467dda0ae61348e14612a7c4c8f602ea1528d00f049a"
+checksum = "a086aebfd6f747b121c61467050570a77d9db75dcdb1134e28fee86b2d319a1f"
 dependencies = [
  "serde",
  "serde_json",
