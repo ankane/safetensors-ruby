@@ -1,4 +1,4 @@
-## 0.1.4 (unreleased)
+## 0.1.4 (2025-05-04)
 
 - Updated Safetensors to 0.5.3
 

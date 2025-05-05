@@ -263,7 +263,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "safetensors"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "magnus",
  "memmap2",
