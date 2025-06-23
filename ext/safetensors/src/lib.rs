@@ -82,7 +82,7 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
 fn serialize(tensor_dict: RHash, metadata: Option<HashMap<String, String>>) -> RbResult<RString> {
     let tensors = prepare(&tensor_dict)?;
     let metadata_map = metadata.map(HashMap::from_iter);
-    let out = safetensors::tensor::serialize(&tensors, &metadata_map)
+    let out = safetensors::tensor::serialize(&tensors, metadata_map)
         .map_err(|e| SafetensorError::new_err(format!("Error while serializing: {e:?}")))?;
     let rbbytes = RString::from_slice(&out);
     Ok(rbbytes)
@@ -94,7 +94,7 @@ fn serialize_file(
     metadata: Option<HashMap<String, String>>,
 ) -> RbResult<()> {
     let tensors = prepare(&tensor_dict)?;
-    safetensors::tensor::serialize_to_file(&tensors, &metadata, filename.as_path())
+    safetensors::tensor::serialize_to_file(&tensors, metadata, filename.as_path())
         .map_err(|e| SafetensorError::new_err(format!("Error while serializing: {e:?}")))?;
     Ok(())
 }
