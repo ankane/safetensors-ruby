@@ -1,6 +1,6 @@
 ## 0.2.1 (unreleased)
 
-- Updated Safetensors to 0.6.1
+- Updated Safetensors to 0.6.2
 
 ## 0.2.0 (2025-06-23)
 
