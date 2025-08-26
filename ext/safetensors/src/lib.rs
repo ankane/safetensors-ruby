@@ -293,7 +293,7 @@ impl Open {
                 let data =
                     &mmap[info.data_offsets.0 + self.offset..info.data_offsets.1 + self.offset];
 
-                let array: Value = ruby.str_from_slice(data).into_value_with(ruby);
+                let array: Value = ruby.str_from_slice(data).as_value();
 
                 create_tensor(
                     ruby,
