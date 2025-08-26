@@ -378,19 +378,19 @@ fn create_tensor(
     Ok(tensor)
 }
 
-fn get_rbdtype(_module: RModule, dtype: Dtype, is_numo: bool) -> RbResult<Value> {
-    let dtype: Value = if is_numo {
+fn get_rbdtype(_module: RModule, dtype: Dtype, is_numo: bool) -> RbResult<Symbol> {
+    let dtype: Symbol = if is_numo {
         match dtype {
-            Dtype::F64 => Symbol::new("DFloat").into_value(),
-            Dtype::F32 => Symbol::new("SFloat").into_value(),
-            Dtype::U64 => Symbol::new("UInt64").into_value(),
-            Dtype::I64 => Symbol::new("Int64").into_value(),
-            Dtype::U32 => Symbol::new("UInt32").into_value(),
-            Dtype::I32 => Symbol::new("Int32").into_value(),
-            Dtype::U16 => Symbol::new("UInt16").into_value(),
-            Dtype::I16 => Symbol::new("Int16").into_value(),
-            Dtype::U8 => Symbol::new("UInt8").into_value(),
-            Dtype::I8 => Symbol::new("Int8").into_value(),
+            Dtype::F64 => Symbol::new("DFloat"),
+            Dtype::F32 => Symbol::new("SFloat"),
+            Dtype::U64 => Symbol::new("UInt64"),
+            Dtype::I64 => Symbol::new("Int64"),
+            Dtype::U32 => Symbol::new("UInt32"),
+            Dtype::I32 => Symbol::new("Int32"),
+            Dtype::U16 => Symbol::new("UInt16"),
+            Dtype::I16 => Symbol::new("Int16"),
+            Dtype::U8 => Symbol::new("UInt8"),
+            Dtype::I8 => Symbol::new("Int8"),
             dtype => {
                 return Err(SafetensorError::new_err(format!(
                     "Dtype not understood: {dtype:?}"
@@ -399,21 +399,21 @@ fn get_rbdtype(_module: RModule, dtype: Dtype, is_numo: bool) -> RbResult<Value>
         }
     } else {
         match dtype {
-            Dtype::F64 => Symbol::new("float64").into_value(),
-            Dtype::F32 => Symbol::new("float32").into_value(),
-            Dtype::BF16 => Symbol::new("bfloat16").into_value(),
-            Dtype::F16 => Symbol::new("float16").into_value(),
-            Dtype::U64 => Symbol::new("uint64").into_value(),
-            Dtype::I64 => Symbol::new("int64").into_value(),
-            Dtype::U32 => Symbol::new("uint32").into_value(),
-            Dtype::I32 => Symbol::new("int32").into_value(),
-            Dtype::U16 => Symbol::new("uint16").into_value(),
-            Dtype::I16 => Symbol::new("int16").into_value(),
-            Dtype::U8 => Symbol::new("uint8").into_value(),
-            Dtype::I8 => Symbol::new("int8").into_value(),
-            Dtype::BOOL => Symbol::new("bool").into_value(),
-            Dtype::F8_E4M3 => Symbol::new("float8_e4m3fn").into_value(),
-            Dtype::F8_E5M2 => Symbol::new("float8_e5m2").into_value(),
+            Dtype::F64 => Symbol::new("float64"),
+            Dtype::F32 => Symbol::new("float32"),
+            Dtype::BF16 => Symbol::new("bfloat16"),
+            Dtype::F16 => Symbol::new("float16"),
+            Dtype::U64 => Symbol::new("uint64"),
+            Dtype::I64 => Symbol::new("int64"),
+            Dtype::U32 => Symbol::new("uint32"),
+            Dtype::I32 => Symbol::new("int32"),
+            Dtype::U16 => Symbol::new("uint16"),
+            Dtype::I16 => Symbol::new("int16"),
+            Dtype::U8 => Symbol::new("uint8"),
+            Dtype::I8 => Symbol::new("int8"),
+            Dtype::BOOL => Symbol::new("bool"),
+            Dtype::F8_E4M3 => Symbol::new("float8_e4m3fn"),
+            Dtype::F8_E5M2 => Symbol::new("float8_e5m2"),
             dtype => {
                 return Err(SafetensorError::new_err(format!(
                     "Dtype not understood: {dtype:?}"
