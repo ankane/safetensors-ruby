@@ -11,7 +11,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-magnus = { version = "0.8", features = ["old-api"] }
+magnus = "0.8"
 memmap2 = "0.5"
 safetensors = "=0.6.2"
 serde_json = "1"

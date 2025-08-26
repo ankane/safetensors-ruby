@@ -79,12 +79,16 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
     Ok(tensors)
 }
 
-fn serialize(tensor_dict: RHash, metadata: Option<HashMap<String, String>>) -> RbResult<RString> {
+fn serialize(
+    ruby: &Ruby,
+    tensor_dict: RHash,
+    metadata: Option<HashMap<String, String>>,
+) -> RbResult<RString> {
     let tensors = prepare(&tensor_dict)?;
     let metadata_map = metadata.map(HashMap::from_iter);
     let out = safetensors::tensor::serialize(&tensors, metadata_map)
         .map_err(|e| SafetensorError::new_err(format!("Error while serializing: {e:?}")))?;
-    let rbbytes = RString::from_slice(&out);
+    let rbbytes = ruby.str_from_slice(&out);
     Ok(rbbytes)
 }
 
@@ -99,20 +103,20 @@ fn serialize_file(
     Ok(())
 }
 
-fn deserialize(bytes: RString) -> RbResult<RArray> {
+fn deserialize(ruby: &Ruby, bytes: RString) -> RbResult<RArray> {
     let safetensor = SafeTensors::deserialize(unsafe { bytes.as_slice() })
         .map_err(|e| SafetensorError::new_err(format!("Error while deserializing: {e:?}")))?;
 
     let tensors = safetensor.tensors();
-    let items = RArray::with_capacity(tensors.len());
+    let items = ruby.ary_new_capa(tensors.len());
 
     for (tensor_name, tensor) in tensors {
-        let rbshape = RArray::from_vec(tensor.shape().to_vec());
+        let rbshape = ruby.ary_from_vec(tensor.shape().to_vec());
         let rbdtype = format!("{:?}", tensor.dtype());
 
-        let rbdata = RString::from_slice(tensor.data());
+        let rbdata = ruby.str_from_slice(tensor.data());
 
-        let map = RHash::new();
+        let map = ruby.hash_new();
         map.aset("shape", rbshape)?;
         map.aset("dtype", rbdtype)?;
         map.aset("data", rbdata)?;
@@ -279,7 +283,7 @@ impl Open {
         Ok(keys)
     }
 
-    pub fn get_tensor(&self, name: &str) -> RbResult<Value> {
+    pub fn get_tensor(&self, ruby: &Ruby, name: &str) -> RbResult<Value> {
         let info = self.metadata.info(name).ok_or_else(|| {
             SafetensorError::new_err(format!("File does not contain tensor {name}",))
         })?;
@@ -289,9 +293,10 @@ impl Open {
                 let data =
                     &mmap[info.data_offsets.0 + self.offset..info.data_offsets.1 + self.offset];
 
-                let array: Value = RString::from_slice(data).into_value();
+                let array: Value = ruby.str_from_slice(data).into_value_with(ruby);
 
                 create_tensor(
+                    ruby,
                     &self.framework,
                     info.dtype,
                     &info.shape,
@@ -332,19 +337,19 @@ impl SafeOpen {
         self.inner()?.keys()
     }
 
-    pub fn get_tensor(&self, name: String) -> RbResult<Value> {
-        self.inner()?.get_tensor(&name)
+    pub fn get_tensor(ruby: &Ruby, rb_self: &Self, name: String) -> RbResult<Value> {
+        rb_self.inner()?.get_tensor(ruby, &name)
     }
 }
 
 fn create_tensor(
+    ruby: &Ruby,
     framework: &Framework,
     dtype: Dtype,
     shape: &[usize],
     array: Value,
     device: &Device,
 ) -> RbResult<Value> {
-    let ruby = Ruby::get().unwrap();
     let (module, is_numo): (RModule, bool) = match framework {
         Framework::Pytorch => (
             ruby.class_object()
@@ -360,7 +365,7 @@ fn create_tensor(
         ),
     };
 
-    let dtype = get_rbdtype(module, dtype, is_numo)?;
+    let dtype = get_rbdtype(ruby, module, dtype, is_numo)?;
     let shape = shape.to_vec();
     let tensor: Value = match framework {
         Framework::Pytorch => {
@@ -378,19 +383,19 @@ fn create_tensor(
     Ok(tensor)
 }
 
-fn get_rbdtype(_module: RModule, dtype: Dtype, is_numo: bool) -> RbResult<Symbol> {
+fn get_rbdtype(ruby: &Ruby, _module: RModule, dtype: Dtype, is_numo: bool) -> RbResult<Symbol> {
     let dtype: Symbol = if is_numo {
         match dtype {
-            Dtype::F64 => Symbol::new("DFloat"),
-            Dtype::F32 => Symbol::new("SFloat"),
-            Dtype::U64 => Symbol::new("UInt64"),
-            Dtype::I64 => Symbol::new("Int64"),
-            Dtype::U32 => Symbol::new("UInt32"),
-            Dtype::I32 => Symbol::new("Int32"),
-            Dtype::U16 => Symbol::new("UInt16"),
-            Dtype::I16 => Symbol::new("Int16"),
-            Dtype::U8 => Symbol::new("UInt8"),
-            Dtype::I8 => Symbol::new("Int8"),
+            Dtype::F64 => ruby.to_symbol("DFloat"),
+            Dtype::F32 => ruby.to_symbol("SFloat"),
+            Dtype::U64 => ruby.to_symbol("UInt64"),
+            Dtype::I64 => ruby.to_symbol("Int64"),
+            Dtype::U32 => ruby.to_symbol("UInt32"),
+            Dtype::I32 => ruby.to_symbol("Int32"),
+            Dtype::U16 => ruby.to_symbol("UInt16"),
+            Dtype::I16 => ruby.to_symbol("Int16"),
+            Dtype::U8 => ruby.to_symbol("UInt8"),
+            Dtype::I8 => ruby.to_symbol("Int8"),
             dtype => {
                 return Err(SafetensorError::new_err(format!(
                     "Dtype not understood: {dtype:?}"
@@ -399,21 +404,21 @@ fn get_rbdtype(_module: RModule, dtype: Dtype, is_numo: bool) -> RbResult<Symbol
         }
     } else {
         match dtype {
-            Dtype::F64 => Symbol::new("float64"),
-            Dtype::F32 => Symbol::new("float32"),
-            Dtype::BF16 => Symbol::new("bfloat16"),
-            Dtype::F16 => Symbol::new("float16"),
-            Dtype::U64 => Symbol::new("uint64"),
-            Dtype::I64 => Symbol::new("int64"),
-            Dtype::U32 => Symbol::new("uint32"),
-            Dtype::I32 => Symbol::new("int32"),
-            Dtype::U16 => Symbol::new("uint16"),
-            Dtype::I16 => Symbol::new("int16"),
-            Dtype::U8 => Symbol::new("uint8"),
-            Dtype::I8 => Symbol::new("int8"),
-            Dtype::BOOL => Symbol::new("bool"),
-            Dtype::F8_E4M3 => Symbol::new("float8_e4m3fn"),
-            Dtype::F8_E5M2 => Symbol::new("float8_e5m2"),
+            Dtype::F64 => ruby.to_symbol("float64"),
+            Dtype::F32 => ruby.to_symbol("float32"),
+            Dtype::BF16 => ruby.to_symbol("bfloat16"),
+            Dtype::F16 => ruby.to_symbol("float16"),
+            Dtype::U64 => ruby.to_symbol("uint64"),
+            Dtype::I64 => ruby.to_symbol("int64"),
+            Dtype::U32 => ruby.to_symbol("uint32"),
+            Dtype::I32 => ruby.to_symbol("int32"),
+            Dtype::U16 => ruby.to_symbol("uint16"),
+            Dtype::I16 => ruby.to_symbol("int16"),
+            Dtype::U8 => ruby.to_symbol("uint8"),
+            Dtype::I8 => ruby.to_symbol("int8"),
+            Dtype::BOOL => ruby.to_symbol("bool"),
+            Dtype::F8_E4M3 => ruby.to_symbol("float8_e4m3fn"),
+            Dtype::F8_E5M2 => ruby.to_symbol("float8_e5m2"),
             dtype => {
                 return Err(SafetensorError::new_err(format!(
                     "Dtype not understood: {dtype:?}"
