@@ -30,7 +30,7 @@ jobs:
           cargo 3pl --target ${{ matrix.target }} --require-files --source 3pl-source > LICENSE-THIRD-PARTY.txt
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.3
+          ruby-version: 3.4
       - name: Remove test dependencies
         run: sed -i '8,$ d' Gemfile
       - run: gem install rb_sys
@@ -38,4 +38,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cross-gem-${{ matrix.platform }}
-          path: ${{ steps.cross-gem.outputs.gem-path }}
+          path: pkg/*.gem
