@@ -1,6 +1,11 @@
 require_relative "test_helper"
 
 class TorchTest < Minitest::Test
+  def setup
+    skip if Gem.win_platform?
+    super
+  end
+
   def test_save
     tensors = generate_tensors
 
