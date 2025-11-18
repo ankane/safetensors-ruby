@@ -5,8 +5,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [3.4, 3.2]
-    runs-on: ubuntu-latest
+        include:
+          - ruby: 3.4
+            os: ubuntu-latest
+          - ruby: 3.2
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
     env:
       BUNDLE_BUILD__TORCH___RB: "--with-torch-dir=/home/runner/libtorch"
       LIBTORCH_VERSION: 2.9.1
@@ -19,13 +23,14 @@ jobs:
             ~/.cargo/git
             tmp
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions/cache@v4
+      - if: ${{ !startsWith(matrix.os, 'windows') }}
+        uses: actions/cache@v4
         with:
           path: ~/libtorch
           key: libtorch-${{ env.LIBTORCH_VERSION }}
         id: cache-libtorch
       - name: Download LibTorch
-        if: steps.cache-libtorch.outputs.cache-hit != 'true'
+        if: ${{ !startsWith(matrix.os, 'windows') && steps.cache-libtorch.outputs.cache-hit != 'true' }}
         run: |
           cd ~
           wget -q -O libtorch.zip https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-$LIBTORCH_VERSION%2Bcpu.zip
@@ -34,5 +39,8 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+      # https://github.com/oxidize-rb/rb-sys/issues/268
+      - if: ${{ startsWith(matrix.os, 'windows') }}
+        run: echo "RUST_TARGET=x86_64-pc-windows-gnu" >> "$env:GITHUB_ENV"
       - run: bundle exec rake compile
       - run: bundle exec rake test
