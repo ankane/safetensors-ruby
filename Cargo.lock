@@ -293,22 +293,22 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "safetensors"
-version = "0.2.1"
-dependencies = [
- "magnus",
- "memmap2",
- "safetensors 0.7.0",
- "serde_json",
-]
-
-[[package]]
-name = "safetensors"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "675656c1eabb620b921efea4f9199f97fc86e36dd6ffd1fbbe48d0f59a4987f5"
 dependencies = [
  "hashbrown",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "safetensors-ruby"
+version = "0.2.1"
+dependencies = [
+ "magnus",
+ "memmap2",
+ "safetensors",
  "serde_json",
 ]
 

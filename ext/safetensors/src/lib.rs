@@ -452,7 +452,7 @@ impl SafetensorError {
     }
 }
 
-#[magnus::init]
+#[magnus::init(name = "safetensors")]
 fn init(ruby: &Ruby) -> RbResult<()> {
     let module = ruby.define_module("Safetensors")?;
     module.define_singleton_method("_serialize", function!(serialize, 2))?;

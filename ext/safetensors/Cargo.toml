@@ -1,5 +1,5 @@
 [package]
-name = "safetensors"
+name = "safetensors-ruby"
 version = "0.2.1"
 license = "Apache-2.0"
 authors = ["Andrew Kane <andrew@ankane.org>"]
@@ -8,6 +8,7 @@ rust-version = "1.80"
 publish = false
 
 [lib]
+name = "safetensors"
 crate-type = ["cdylib"]
 
 [dependencies]
