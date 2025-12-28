@@ -16,7 +16,7 @@ jobs:
       LIBTORCH_VERSION: 2.9.1
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -24,7 +24,7 @@ jobs:
             tmp
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - if: ${{ !startsWith(matrix.os, 'windows') }}
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/libtorch
           key: libtorch-${{ env.LIBTORCH_VERSION }}
