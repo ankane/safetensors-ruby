@@ -23,14 +23,14 @@ jobs:
             ~/.cargo/git
             tmp
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - if: ${{ !startsWith(matrix.os, 'windows') }}
+      - if: ${{ runner.os == 'Windows' }}
         uses: actions/cache@v5
         with:
           path: ~/libtorch
           key: libtorch-${{ env.LIBTORCH_VERSION }}
         id: cache-libtorch
       - name: Download LibTorch
-        if: ${{ !startsWith(matrix.os, 'windows') && steps.cache-libtorch.outputs.cache-hit != 'true' }}
+        if: ${{ runner.os == 'Windows' && steps.cache-libtorch.outputs.cache-hit != 'true' }}
         run: |
           cd ~
           wget -q -O libtorch.zip https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-$LIBTORCH_VERSION%2Bcpu.zip
