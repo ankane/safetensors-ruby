@@ -2,7 +2,7 @@
 
 :slightly_smiling_face: Simple, [safe way](https://github.com/huggingface/safetensors) to store and distribute tensors
 
-Supports [Torch.rb](https://github.com/ankane/torch.rb) and [Numo](https://github.com/ruby-numo/numo-narray)
+Supports [Torch.rb](https://github.com/ankane/torch.rb) and [numo-narray-alt](https://github.com/yoshoku/numo-narray-alt)
 
 [![Build Status](https://github.com/ankane/safetensors-ruby/actions/workflows/build.yml/badge.svg)](https://github.com/ankane/safetensors-ruby/actions)
 
