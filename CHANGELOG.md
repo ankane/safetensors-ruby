@@ -1,3 +1,7 @@
+## 0.2.3 (unreleased)
+
+- Added support for releasing GVL
+
 ## 0.2.2 (2026-01-05)
 
 - Added support for Ruby 4.0

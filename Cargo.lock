@@ -308,6 +308,7 @@ version = "0.2.2"
 dependencies = [
  "magnus",
  "memmap2",
+ "rb-sys",
  "safetensors",
  "serde_json",
 ]

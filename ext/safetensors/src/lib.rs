@@ -1,3 +1,5 @@
+mod ruby;
+
 use magnus::{
     function, kwargs, method, prelude::*, r_hash::ForEach, Error, IntoValue, RArray, RHash,
     RModule, RString, Ruby, Symbol, TryConvert, Value,
@@ -8,6 +10,8 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+use crate::ruby::GvlExt;
 
 type RbResult<T> = Result<T, Error>;
 
@@ -86,19 +90,21 @@ fn serialize(
 ) -> RbResult<RString> {
     let tensors = prepare(&tensor_dict)?;
     let metadata_map = metadata.map(HashMap::from_iter);
-    let out = safetensors::tensor::serialize(&tensors, metadata_map)
+    let out = ruby
+        .detach(|| safetensors::tensor::serialize(&tensors, metadata_map))
         .map_err(|e| SafetensorError::new_err(format!("Error while serializing: {e:?}")))?;
     let rbbytes = ruby.str_from_slice(&out);
     Ok(rbbytes)
 }
 
 fn serialize_file(
+    ruby: &Ruby,
     tensor_dict: RHash,
     filename: PathBuf,
     metadata: Option<HashMap<String, String>>,
 ) -> RbResult<()> {
     let tensors = prepare(&tensor_dict)?;
-    safetensors::tensor::serialize_to_file(&tensors, metadata, filename.as_path())
+    ruby.detach(|| safetensors::tensor::serialize_to_file(&tensors, metadata, filename.as_path()))
         .map_err(|e| SafetensorError::new_err(format!("Error while serializing: {e:?}")))?;
     Ok(())
 }
