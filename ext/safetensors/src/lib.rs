@@ -163,55 +163,48 @@ enum Device {
     Mps,
     Npu(usize),
     Xpu(usize),
+    Xla(usize),
+    Mlu(usize),
+    Hpu(usize),
+    // Anonymous(usize),
+}
+
+/// Parsing the device index.
+fn parse_device(name: &str) -> RbResult<usize> {
+    let tokens: Vec<_> = name.split(':').collect();
+    if tokens.len() == 2 {
+        Ok(tokens[1].parse().map_err(SafetensorError::parse)?)
+    } else {
+        Err(SafetensorError::new_err(format!(
+            "device {name} is invalid"
+        )))
+    }
 }
 
 impl TryConvert for Device {
     fn try_convert(ob: Value) -> RbResult<Self> {
         if let Ok(name) = String::try_convert(ob) {
-            match &name[..] {
+            match name.as_str() {
                 "cpu" => Ok(Device::Cpu),
                 "cuda" => Ok(Device::Cuda(0)),
                 "mps" => Ok(Device::Mps),
                 "npu" => Ok(Device::Npu(0)),
                 "xpu" => Ok(Device::Xpu(0)),
-                name if name.starts_with("cuda:") => {
-                    let tokens: Vec<_> = name.split(':').collect();
-                    if tokens.len() == 2 {
-                        let device: usize = tokens[1].parse().map_err(SafetensorError::parse)?;
-                        Ok(Device::Cuda(device))
-                    } else {
-                        Err(SafetensorError::new_err(format!(
-                            "device {name} is invalid"
-                        )))
-                    }
-                }
-                name if name.starts_with("npu:") => {
-                    let tokens: Vec<_> = name.split(':').collect();
-                    if tokens.len() == 2 {
-                        let device: usize = tokens[1].parse().map_err(SafetensorError::parse)?;
-                        Ok(Device::Npu(device))
-                    } else {
-                        Err(SafetensorError::new_err(format!(
-                            "device {name} is invalid"
-                        )))
-                    }
-                }
-                name if name.starts_with("xpu:") => {
-                    let tokens: Vec<_> = name.split(':').collect();
-                    if tokens.len() == 2 {
-                        let device: usize = tokens[1].parse().map_err(SafetensorError::parse)?;
-                        Ok(Device::Xpu(device))
-                    } else {
-                        Err(SafetensorError::new_err(format!(
-                            "device {name} is invalid"
-                        )))
-                    }
-                }
+                "xla" => Ok(Device::Xla(0)),
+                "mlu" => Ok(Device::Mlu(0)),
+                "hpu" => Ok(Device::Hpu(0)),
+                name if name.starts_with("cuda:") => parse_device(name).map(Device::Cuda),
+                name if name.starts_with("npu:") => parse_device(name).map(Device::Npu),
+                name if name.starts_with("xpu:") => parse_device(name).map(Device::Xpu),
+                name if name.starts_with("xla:") => parse_device(name).map(Device::Xla),
+                name if name.starts_with("mlu:") => parse_device(name).map(Device::Mlu),
+                name if name.starts_with("hpu:") => parse_device(name).map(Device::Hpu),
                 name => Err(SafetensorError::new_err(format!(
                     "device {name} is invalid"
                 ))),
             }
         } else if let Ok(number) = usize::try_convert(ob) {
+            // TODO change to Ok(Device::Anonymous(number))
             Ok(Device::Cuda(number))
         } else {
             Err(SafetensorError::new_err(format!("device {ob} is invalid")))
@@ -227,6 +220,10 @@ impl IntoValue for Device {
             Device::Mps => "mps".into_value_with(ruby),
             Device::Npu(n) => format!("npu:{n}").into_value_with(ruby),
             Device::Xpu(n) => format!("xpu:{n}").into_value_with(ruby),
+            Device::Xla(n) => format!("xla:{n}").into_value_with(ruby),
+            Device::Mlu(n) => format!("mlu:{n}").into_value_with(ruby),
+            Device::Hpu(n) => format!("hpu:{n}").into_value_with(ruby),
+            // Device::Anonymous(n) => n.into_value_with(ruby),
         }
     }
 }
