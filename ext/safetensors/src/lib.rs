@@ -314,7 +314,7 @@ impl Open {
 
     pub fn get_tensor(&self, ruby: &Ruby, name: &str) -> RbResult<Value> {
         let info = self.metadata.info(name).ok_or_else(|| {
-            SafetensorError::new_err(format!("File does not contain tensor {name}",))
+            SafetensorError::new_err(format!("File does not contain tensor {name}"))
         })?;
 
         match &self.storage.as_ref() {
