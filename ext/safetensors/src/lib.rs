@@ -7,6 +7,7 @@ use magnus::{
 use memmap2::{Mmap, MmapOptions};
 use safetensors::tensor::{Dtype, Metadata, SafeTensors, TensorView};
 use std::collections::HashMap;
+use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -138,6 +139,15 @@ enum Framework {
     Numo,
 }
 
+impl fmt::Display for Framework {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match *self {
+            Framework::Pytorch => "torch",
+            Framework::Numo => "numo",
+        })
+    }
+}
+
 impl TryConvert for Framework {
     fn try_convert(ob: Value) -> RbResult<Self> {
         let name: String = String::try_convert(ob)?;
@@ -167,6 +177,22 @@ enum Device {
     Mlu(usize),
     Hpu(usize),
     // Anonymous(usize),
+}
+
+impl fmt::Display for Device {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Device::Cpu => write!(f, "cpu"),
+            Device::Mps => write!(f, "mps"),
+            Device::Cuda(index) => write!(f, "cuda:{index}"),
+            Device::Npu(index) => write!(f, "npu:{index}"),
+            Device::Xpu(index) => write!(f, "xpu:{index}"),
+            Device::Xla(index) => write!(f, "xla:{index}"),
+            Device::Mlu(index) => write!(f, "mlu:{index}"),
+            Device::Hpu(index) => write!(f, "hpu:{index}"),
+            // Device::Anonymous(index) => write!(f, "{index}"),
+        }
+    }
 }
 
 /// Parsing the device index.
@@ -243,13 +269,13 @@ struct Open {
 impl Open {
     fn new(filename: PathBuf, framework: Framework, device: Option<Device>) -> RbResult<Self> {
         let file = File::open(&filename).map_err(|_| {
-            SafetensorError::new_err(format!("No such file or directory: {filename:?}"))
+            SafetensorError::new_err(format!("No such file or directory: {}", filename.display()))
         })?;
         let device = device.unwrap_or(Device::Cpu);
 
         if device != Device::Cpu && framework != Framework::Pytorch {
             return Err(SafetensorError::new_err(format!(
-                "Device {device:?} is not support for framework {framework:?}",
+                "Device {device} is not support for framework {framework}",
             )));
         }
 
@@ -258,7 +284,7 @@ impl Open {
         let buffer = unsafe { MmapOptions::new().map(&file).map_err(SafetensorError::io)? };
 
         let (n, metadata) = SafeTensors::read_metadata(&buffer).map_err(|e| {
-            SafetensorError::new_err(format!("Error while deserializing header: {e:?}"))
+            SafetensorError::new_err(format!("Error while deserializing header: {e}"))
         })?;
 
         let offset = n + 8;
