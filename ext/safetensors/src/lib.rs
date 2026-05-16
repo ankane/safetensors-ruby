@@ -59,7 +59,7 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
                     data = Some((slice.as_ptr(), slice.len()));
                 }
                 _ => println!("Ignored unknown kwarg option {key}"),
-            };
+            }
 
             Ok(ForEach::Continue)
         })?;
@@ -363,7 +363,7 @@ fn create_tensor(
                 .map_err(|_| SafetensorError::new_err("Torch not loaded".into()))?,
             false,
         ),
-        _ => (
+        Framework::Numo => (
             ruby.class_object()
                 .const_get("Numo")
                 .map_err(|_| SafetensorError::new_err("Numo not loaded".into()))?,
@@ -381,7 +381,7 @@ fn create_tensor(
             )?;
             module.funcall("_from_blob_ref", (array, shape, options))?
         }
-        _ => {
+        Framework::Numo => {
             let class: Value = module.funcall("const_get", (dtype,))?;
             class.funcall("from_binary", (array, shape))?
         }
