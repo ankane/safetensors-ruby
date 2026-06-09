@@ -491,6 +491,10 @@ fn get_rbdtype(ruby: &Ruby, _module: RModule, dtype: Dtype, is_numo: bool) -> Rb
             Dtype::BOOL => ruby.to_symbol("bool"),
             Dtype::F8_E4M3 => ruby.to_symbol("float8_e4m3fn"),
             Dtype::F8_E5M2 => ruby.to_symbol("float8_e5m2"),
+            Dtype::F8_E5M2FNUZ => ruby.to_symbol("float8_e5m2fnuz"),
+            Dtype::F8_E8M0 => ruby.to_symbol("float8_e8m0fnu"),
+            Dtype::F4 => ruby.to_symbol("float4_e2m1fn_x2"),
+            Dtype::C64 => ruby.to_symbol("complex64"),
             dtype => {
                 return Err(SafetensorError::new_err(format!(
                     "Dtype not understood: {dtype:?}"
