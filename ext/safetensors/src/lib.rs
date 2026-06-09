@@ -19,39 +19,19 @@ type RbResult<T> = Result<T, Error>;
 fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
     let mut tensors = HashMap::with_capacity(tensor_dict.len());
     tensor_dict.foreach(|tensor_name: String, tensor_desc: RHash| {
-        let mut shape: Option<Vec<usize>> = None;
-        let mut dtype: Option<Dtype> = None;
-        let mut data: Option<(*const u8, usize)> = None;
-
-        tensor_desc.foreach(|key: String, value: Value| {
-            match key.as_str() {
-                "shape" => shape = Some(Vec::try_convert(value)?),
-                "dtype" => {
-                    let value = String::try_convert(value)?;
-                    dtype = Some(parse_dtype_str(value.as_str())?);
-                }
-                "data" => {
-                    let rs = RString::try_convert(value)?;
-                    // SAFETY: No context switching between threads in native extensions
-                    // so the string will not be modified (or garbage collected)
-                    // while the reference is held. Also, the string is a private copy.
-                    let slice = unsafe { rs.as_slice() };
-                    data = Some((slice.as_ptr(), slice.len()));
-                }
-                _ => println!("Ignored unknown kwarg option {key}"),
-            }
-
-            Ok(ForEach::Continue)
-        })?;
-        let mut shape = shape.ok_or_else(|| {
+        let mut shape = Vec::<usize>::try_convert(tensor_desc.get("shape").ok_or_else(|| {
             SafetensorError::new_err(format!("Missing `shape` in {tensor_desc:?}"))
-        })?;
-        let dtype = dtype.ok_or_else(|| {
-            SafetensorError::new_err(format!("Missing `dtype` in {tensor_desc:?}"))
-        })?;
-        let data = data.ok_or_else(|| {
+        })?)?;
+        let rbdata = tensor_desc.get("data").ok_or_else(|| {
             SafetensorError::new_err(format!("Missing `data` in {tensor_desc:?}"))
         })?;
+
+        let rbdtype = tensor_desc.get("dtype").ok_or_else(|| {
+            SafetensorError::new_err(format!("Missing `dtype` in {tensor_desc:?}"))
+        })?;
+
+        let dtype = String::try_convert(rbdtype)?;
+        let dtype = parse_dtype_str(dtype.as_ref())?;
 
         // F4 packs two elements per byte; the safetensors header records the
         // logical element count, so double the last dim.
@@ -65,8 +45,14 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
             })?;
         }
 
-        // SAFETY: See comment above.
+        let rs = RString::try_convert(rbdata)?;
+        // SAFETY: No context switching between threads in native extensions
+        // so the string will not be modified (or garbage collected)
+        // while the reference is held. Also, the string is a private copy.
+        let slice = unsafe { rs.as_slice() };
+        let data = (slice.as_ptr(), slice.len());
         let data = unsafe { std::slice::from_raw_parts(data.0, data.1) };
+
         let tensor = TensorView::new(dtype, shape, data)
             .map_err(|e| SafetensorError::new_err(format!("Error preparing tensor view: {e:?}")))?;
         tensors.insert(tensor_name, tensor);
