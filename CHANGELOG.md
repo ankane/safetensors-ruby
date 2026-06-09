@@ -1,4 +1,4 @@
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-06-09)
 
 - Updated Safetensors to 0.8.0
 - Added support for releasing GVL
