@@ -1,7 +1,8 @@
-## 0.2.3 (unreleased)
+## 0.3.0 (unreleased)
 
 - Updated Safetensors to 0.8.0
 - Added support for releasing GVL
+- Dropped support for Ruby < 3.3
 
 ## 0.2.2 (2026-01-05)
 
