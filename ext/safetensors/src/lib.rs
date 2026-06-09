@@ -1,11 +1,14 @@
 mod ruby;
 
+use core::slice;
 use magnus::{
     function, kwargs, method, prelude::*, r_hash::ForEach, Error, IntoValue, RArray, RHash,
     RModule, RString, Ruby, Symbol, TryConvert, Value,
 };
 use memmap2::{Mmap, MmapOptions};
-use safetensors::tensor::{Dtype, Metadata, SafeTensors, TensorView};
+use safetensors::tensor::{Dtype, Metadata, SafeTensors};
+use safetensors::View;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
@@ -16,23 +19,18 @@ use crate::ruby::GvlExt;
 
 type RbResult<T> = Result<T, Error>;
 
-fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
-    let mut tensors = HashMap::with_capacity(tensor_dict.len());
-    tensor_dict.foreach(|tensor_name: String, tensor_desc: RHash| {
-        let mut shape = Vec::<usize>::try_convert(tensor_desc.get("shape").ok_or_else(|| {
-            SafetensorError::new_err(format!("Missing `shape` in {tensor_desc:?}"))
-        })?)?;
-        let rbdata = tensor_desc.get("data").ok_or_else(|| {
-            SafetensorError::new_err(format!("Missing `data` in {tensor_desc:?}"))
-        })?;
+#[derive(Clone, Debug)]
+struct TensorSpec {
+    dtype: Dtype,
+    shape: Vec<usize>,
+    data_ptr: u64,
+    data_len: usize,
+}
 
-        let rbdtype = tensor_desc.get("dtype").ok_or_else(|| {
-            SafetensorError::new_err(format!("Missing `dtype` in {tensor_desc:?}"))
-        })?;
-
-        let dtype = String::try_convert(rbdtype)?;
-        let dtype = parse_dtype_str(dtype.as_ref())?;
-
+impl TensorSpec {
+    fn new(dtype: &str, shape: Vec<usize>, data_ptr: u64, data_len: usize) -> RbResult<Self> {
+        let dtype = parse_dtype_str(dtype)?;
+        let mut shape = shape;
         // F4 packs two elements per byte; the safetensors header records the
         // logical element count, so double the last dim.
         if dtype == Dtype::F4 && !shape.is_empty() {
@@ -44,22 +42,36 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
                 ))
             })?;
         }
+        Ok(Self {
+            dtype,
+            shape,
+            data_ptr,
+            data_len,
+        })
+    }
+}
 
-        let rs = RString::try_convert(rbdata)?;
-        // SAFETY: No context switching between threads in native extensions
-        // so the string will not be modified (or garbage collected)
-        // while the reference is held. Also, the string is a private copy.
-        let slice = unsafe { rs.as_slice() };
-        let data = (slice.as_ptr(), slice.len());
-        let data = unsafe { std::slice::from_raw_parts(data.0, data.1) };
+impl View for &TensorSpec {
+    fn dtype(&self) -> Dtype {
+        self.dtype
+    }
 
-        let tensor = TensorView::new(dtype, shape, data)
-            .map_err(|e| SafetensorError::new_err(format!("Error preparing tensor view: {e:?}")))?;
-        tensors.insert(tensor_name, tensor);
+    fn shape(&self) -> &[usize] {
+        &self.shape
+    }
 
-        Ok(ForEach::Continue)
-    })?;
-    Ok(tensors)
+    fn data(&self) -> Cow<'_, [u8]> {
+        let p = self.data_ptr as *const u8;
+        // SAFETY: validated by the caller; see the struct-level safety note.
+        unsafe {
+            let slice = slice::from_raw_parts(p, self.data_len);
+            Cow::Borrowed(slice)
+        }
+    }
+
+    fn data_len(&self) -> usize {
+        self.data_len
+    }
 }
 
 fn parse_dtype_str(dtype: &str) -> RbResult<Dtype> {
@@ -93,6 +105,37 @@ fn parse_dtype_str(dtype: &str) -> RbResult<Dtype> {
             )));
         }
     })
+}
+
+fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorSpec>> {
+    let mut tensors = HashMap::with_capacity(tensor_dict.len());
+    tensor_dict.foreach(|tensor_name: String, tensor_desc: RHash| {
+        let shape = Vec::<usize>::try_convert(tensor_desc.get("shape").ok_or_else(|| {
+            SafetensorError::new_err(format!("Missing `shape` in {tensor_desc:?}"))
+        })?)?;
+        let rbdata = tensor_desc.get("data").ok_or_else(|| {
+            SafetensorError::new_err(format!("Missing `data` in {tensor_desc:?}"))
+        })?;
+
+        let rbdtype = tensor_desc.get("dtype").ok_or_else(|| {
+            SafetensorError::new_err(format!("Missing `dtype` in {tensor_desc:?}"))
+        })?;
+
+        let dtype = String::try_convert(rbdtype)?;
+
+        let rs = RString::try_convert(rbdata)?;
+        // SAFETY: No context switching between threads in native extensions
+        // so the string will not be modified (or garbage collected)
+        // while the reference is held. Also, the string is a private copy.
+        let slice = unsafe { rs.as_slice() };
+
+        let tensor = TensorSpec::new(dtype.as_ref(), shape, slice.as_ptr() as u64, slice.len())
+            .map_err(|e| SafetensorError::new_err(format!("Error preparing tensor view: {e:?}")))?;
+        tensors.insert(tensor_name, tensor);
+
+        Ok(ForEach::Continue)
+    })?;
+    Ok(tensors)
 }
 
 fn serialize(
