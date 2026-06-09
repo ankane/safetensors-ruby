@@ -110,24 +110,14 @@ fn parse_dtype_str(dtype: &str) -> RbResult<Dtype> {
 fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorSpec>> {
     let mut tensors = HashMap::with_capacity(tensor_dict.len());
     tensor_dict.foreach(|tensor_name: String, tensor_desc: RHash| {
-        let shape = Vec::<usize>::try_convert(tensor_desc.get("shape").ok_or_else(|| {
-            SafetensorError::new_err(format!("Missing `shape` in {tensor_desc:?}"))
-        })?)?;
-        let rbdata = tensor_desc.get("data").ok_or_else(|| {
-            SafetensorError::new_err(format!("Missing `data` in {tensor_desc:?}"))
-        })?;
+        let dtype: String = tensor_desc.aref("dtype")?;
+        let shape: Vec<usize> = tensor_desc.aref("shape")?;
+        let data: RString = tensor_desc.aref("data")?;
 
-        let rbdtype = tensor_desc.get("dtype").ok_or_else(|| {
-            SafetensorError::new_err(format!("Missing `dtype` in {tensor_desc:?}"))
-        })?;
-
-        let dtype = String::try_convert(rbdtype)?;
-
-        let rs = RString::try_convert(rbdata)?;
         // SAFETY: No context switching between threads in native extensions
         // so the string will not be modified (or garbage collected)
         // while the reference is held. Also, the string is a private copy.
-        let slice = unsafe { rs.as_slice() };
+        let slice = unsafe { data.as_slice() };
 
         let tensor = TensorSpec::new(dtype.as_ref(), shape, slice.as_ptr() as u64, slice.len())
             .map_err(|e| SafetensorError::new_err(format!("Error preparing tensor view: {e:?}")))?;
