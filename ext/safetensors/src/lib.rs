@@ -28,28 +28,7 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
                 "shape" => shape = Some(Vec::try_convert(value)?),
                 "dtype" => {
                     let value = String::try_convert(value)?;
-                    dtype = match value.as_str() {
-                        "bool" => Some(Dtype::BOOL),
-                        "int8" => Some(Dtype::I8),
-                        "uint8" => Some(Dtype::U8),
-                        "int16" => Some(Dtype::I16),
-                        "uint16" => Some(Dtype::U16),
-                        "int32" => Some(Dtype::I32),
-                        "uint32" => Some(Dtype::U32),
-                        "int64" => Some(Dtype::I64),
-                        "uint64" => Some(Dtype::U64),
-                        "float16" => Some(Dtype::F16),
-                        "float32" => Some(Dtype::F32),
-                        "float64" => Some(Dtype::F64),
-                        "bfloat16" => Some(Dtype::BF16),
-                        "float8_e4m3fn" => Some(Dtype::F8_E4M3),
-                        "float8_e5m2" => Some(Dtype::F8_E5M2),
-                        dtype_str => {
-                            return Err(SafetensorError::new_err(format!(
-                                "dtype {dtype_str} is not covered",
-                            )));
-                        }
-                    }
+                    dtype = Some(parse_dtype_str(value.as_str())?);
                 }
                 "data" => {
                     let rs = RString::try_convert(value)?;
@@ -64,7 +43,7 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
 
             Ok(ForEach::Continue)
         })?;
-        let shape = shape.ok_or_else(|| {
+        let mut shape = shape.ok_or_else(|| {
             SafetensorError::new_err(format!("Missing `shape` in {tensor_desc:?}"))
         })?;
         let dtype = dtype.ok_or_else(|| {
@@ -73,6 +52,19 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
         let data = data.ok_or_else(|| {
             SafetensorError::new_err(format!("Missing `data` in {tensor_desc:?}"))
         })?;
+
+        // F4 packs two elements per byte; the safetensors header records the
+        // logical element count, so double the last dim.
+        if dtype == Dtype::F4 && !shape.is_empty() {
+            let n = shape.len();
+            shape[n - 1] = shape[n - 1].checked_mul(2).ok_or_else(|| {
+                SafetensorError::new_err(format!(
+                    "F4 last-dim {} doubled to logical shape overflows usize",
+                    shape[n - 1]
+                ))
+            })?;
+        }
+
         // SAFETY: See comment above.
         let data = unsafe { std::slice::from_raw_parts(data.0, data.1) };
         let tensor = TensorView::new(dtype, shape, data)
@@ -82,6 +74,39 @@ fn prepare(tensor_dict: &RHash) -> RbResult<HashMap<String, TensorView<'_>>> {
         Ok(ForEach::Continue)
     })?;
     Ok(tensors)
+}
+
+fn parse_dtype_str(dtype: &str) -> RbResult<Dtype> {
+    Ok(match dtype {
+        "bool" => Dtype::BOOL,
+        "int8" => Dtype::I8,
+        "uint8" => Dtype::U8,
+        "int16" => Dtype::I16,
+        "uint16" => Dtype::U16,
+        "int32" => Dtype::I32,
+        "uint32" => Dtype::U32,
+        "int64" => Dtype::I64,
+        "uint64" => Dtype::U64,
+        "float16" => Dtype::F16,
+        "float32" => Dtype::F32,
+        "float64" => Dtype::F64,
+        "bfloat16" => Dtype::BF16,
+        "float8_e4m3fn" => Dtype::F8_E4M3,
+        "float8_e4m3fnuz" => Dtype::F8_E4M3FNUZ,
+        "float8_e5m2" => Dtype::F8_E5M2,
+        "float8_e5m2fnuz" => Dtype::F8_E5M2FNUZ,
+        "float8_e8m0fnu" => Dtype::F8_E8M0,
+        "float4_e2m1fn_x2" => Dtype::F4,
+        "complex64" => Dtype::C64,
+        other => {
+            return Err(SafetensorError::new_err(format!(
+                "Unknown dtype {other:?}. Supported dtypes: bool, int8, uint8, int16, uint16, \
+                 int32, uint32, int64, uint64, float16, float32, float64, bfloat16, \
+                 float8_e4m3fn, float8_e4m3fnuz, float8_e5m2, float8_e5m2fnuz, float8_e8m0fnu, \
+                 float4_e2m1fn_x2, complex64",
+            )));
+        }
+    })
 }
 
 fn serialize(
