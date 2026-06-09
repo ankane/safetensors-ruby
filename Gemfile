@@ -6,4 +6,4 @@ gem "rake"
 gem "rake-compiler"
 gem "minitest"
 gem "torch-rb", platform: :ruby
-gem "numo-narray-alt", require: "numo/narray"
+gem "numo-narray-alt"
