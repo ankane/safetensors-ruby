@@ -176,7 +176,7 @@ enum Device {
     Xla(usize),
     Mlu(usize),
     Hpu(usize),
-    // Anonymous(usize),
+    Anonymous(usize),
 }
 
 impl fmt::Display for Device {
@@ -190,7 +190,7 @@ impl fmt::Display for Device {
             Device::Xla(index) => write!(f, "xla:{index}"),
             Device::Mlu(index) => write!(f, "mlu:{index}"),
             Device::Hpu(index) => write!(f, "hpu:{index}"),
-            // Device::Anonymous(index) => write!(f, "{index}"),
+            Device::Anonymous(index) => write!(f, "{index}"),
         }
     }
 }
@@ -230,8 +230,7 @@ impl TryConvert for Device {
                 ))),
             }
         } else if let Ok(number) = usize::try_convert(ob) {
-            // TODO change to Ok(Device::Anonymous(number))
-            Ok(Device::Cuda(number))
+            Ok(Device::Anonymous(number))
         } else {
             Err(SafetensorError::new_err(format!("device {ob} is invalid")))
         }
@@ -249,7 +248,7 @@ impl IntoValue for Device {
             Device::Xla(n) => format!("xla:{n}").into_value_with(ruby),
             Device::Mlu(n) => format!("mlu:{n}").into_value_with(ruby),
             Device::Hpu(n) => format!("hpu:{n}").into_value_with(ruby),
-            // Device::Anonymous(n) => n.into_value_with(ruby),
+            Device::Anonymous(n) => n.into_value_with(ruby),
         }
     }
 }
