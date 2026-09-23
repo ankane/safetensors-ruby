@@ -12,7 +12,7 @@ name = "safetensors"
 crate-type = ["cdylib"]
 
 [dependencies]
-magnus = "0.8"
+magnus = "0.9"
 memmap2 = "0.9"
 rb-sys = "0.9"
 safetensors = "=0.8.0"
