@@ -13,10 +13,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       BUNDLE_BUILD__TORCH___RB: "--with-torch-dir=/home/runner/libtorch"
-      LIBTORCH_VERSION: 2.12.0
+      LIBTORCH_VERSION: 2.14.0
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/cache@v5
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -24,7 +24,7 @@ jobs:
             tmp
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - if: ${{ runner.os != 'Windows' }}
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/libtorch
           key: libtorch-${{ env.LIBTORCH_VERSION }}
